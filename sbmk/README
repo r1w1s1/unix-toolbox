@@ -1,0 +1,42 @@
+sbmk - minimal SlackBuild helper
+
+sbmk is a small shell script for fetching and building individual
+SlackBuilds.org packages using a temporary workspace under /tmp.
+
+It is intended as a convenience tool, not a package manager.
+
+sbmk uses the existing SlackBuilds.org metadata and runs SlackBuild
+scripts unmodified, in the same way a user would do manually.
+
+
+Design characteristics:
+
+- uses SLACKBUILDS.TXT as a simple index
+- fetches only the requested SlackBuild
+- downloads source archives listed in the .info file
+- does not resolve dependencies
+- does not install packages
+- keeps no local database or persistent state
+
+
+Usage:
+
+  sbmk PACKAGE
+  sbmk PACKAGE --deps
+  sbmk PACKAGE --keep
+
+sbmk must be run as root, as required by SlackBuilds.
+
+
+Relation to sbotools:
+
+sbotools provides a complete SlackBuilds.org management workflow,
+including dependency handling, queues, upgrades, and state tracking.
+
+sbmk does not attempt to replace or replicate this functionality.
+
+Its purpose is deliberately narrower: to provide a small, transparent
+helper for users who prefer to manage dependencies and installations
+themselves.
+
+The difference is intentional.

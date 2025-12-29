@@ -1,0 +1,78 @@
+#!/bin/sh
+#
+# sfetch - minimal, truthful system info for Slackware
+#
+# Based on ufetch by J. Schillinger.
+# Window manager detection uses EWMH via xprop only (no guessing).
+# Non-EWMH window managers may set SFETCH_WM manually.
+#
+
+## BASIC INFO
+
+host="$(hostname)"
+os="$(cat /etc/slackware-version 2>/dev/null)"
+kernel="$(uname -sr)"
+uptime="$(uptime -p 2>/dev/null | sed 's/^up //')"
+
+## SHELL (pretty name)
+
+shell="$(basename "$SHELL")"
+[ "$shell" = "bash" ] && shell="GNU bash"
+
+## EDITOR
+
+editor=""
+if [ -n "$EDITOR" ]; then
+    set -- $EDITOR
+    editor="$(basename "$1")"
+fi
+
+## WINDOW MANAGER (strict)
+
+wm=""
+
+# User override (for twm, mwm, etc.)
+if [ -n "$SFETCH_WM" ]; then
+    wm="$SFETCH_WM"
+
+# EWMH via xprop (X11 only)
+elif [ -n "$DISPLAY" ] && command -v xprop >/dev/null 2>&1; then
+    wm_id="$(xprop -root _NET_SUPPORTING_WM_CHECK 2>/dev/null \
+        | awk '{print $5}')"
+
+    if [ -n "$wm_id" ] && [ "$wm_id" != "not" ]; then
+        wm="$(xprop -id "$wm_id" _NET_WM_NAME 2>/dev/null \
+            | sed -n 's/.*= "\(.*\)"/\1/p')"
+    fi
+fi
+
+## COLORS
+
+if command -v tput >/dev/null 2>&1; then
+    bold="$(tput bold)"
+    blue="$(tput setaf 4)"
+    reset="$(tput sgr0)"
+fi
+
+lc="${reset}${bold}${blue}"
+nc="${reset}${bold}${blue}"
+ic="${reset}"
+c0="${reset}${blue}"
+
+## OUTPUT
+
+cat <<EOF
+
+${c0}     ________    ${nc}${USER}${ic}@${nc}${host}${reset}
+${c0}    /  ______|   ${lc}OS:        ${ic}${os}${reset}
+${c0}    | |______    ${lc}KERNEL:    ${ic}${kernel}${reset}
+${c0}    \\______  \\   ${lc}UPTIME:    ${ic}${uptime}${reset}
+${c0}     ______| |   ${lc}SHELL:     ${ic}${shell}${reset}
+${c0}  | |________/   ${lc}EDITOR:    ${ic}${editor}${reset}
+${c0}  |____________  ${lc}WM:        ${ic}${wm}${reset}
+
+EOF
+
+# Ensure terminal colors are fully reset
+[ -n "$reset" ] && printf '%s' "$reset"
+ 

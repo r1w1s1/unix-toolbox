@@ -1,0 +1,157 @@
+#!/bin/sh
+# Copyright 2025  r1w1s1
+# All rights reserved.
+#
+# Redistribution and use of this script, with or without modification, is
+# permitted provided that the following conditions are met:
+#
+# 1. Redistributions of this script must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+#
+# THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR IMPLIED
+# WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+# MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.  IN NO
+# EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+# PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+# OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+# WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+# OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+# ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+set -eu
+
+# SlackBuilds.org base (Slackware 15.0)
+BASE="rsync://slackbuilds.org/slackbuilds/15.0"
+
+# sbmk workspace
+TMPBASE="/tmp/sbmk"
+INDEX="$TMPBASE/SLACKBUILDS.TXT"
+
+KEEP=0
+SHOW_DEPS=0
+
+usage() {
+  echo "usage: sbmk PACKAGE [--deps] [--keep]"
+  exit 1
+}
+
+[ $# -lt 1 ] && usage
+
+PKG="$1"
+shift
+
+for a in "$@"; do
+  case "$a" in
+    --deps) SHOW_DEPS=1 ;;
+    --keep) KEEP=1 ;;
+    *) usage ;;
+  esac
+done
+
+# SlackBuilds are meant to be run as root
+if [ "$(id -u)" -ne 0 ]; then
+  echo "sbmk: must be run as root"
+  exit 1
+fi
+
+mkdir -p "$TMPBASE"
+
+# Fetch SLACKBUILDS.TXT if missing
+if [ ! -f "$INDEX" ]; then
+  echo "==> fetching SLACKBUILDS.TXT"
+  rsync "$BASE/SLACKBUILDS.TXT" "$INDEX"
+fi
+
+# Locate package (shell-only parsing)
+found=0
+loc=""
+
+while IFS= read -r line; do
+  case "$line" in
+    "SLACKBUILD NAME: $PKG")
+      found=1
+      ;;
+    "SLACKBUILD LOCATION:"*)
+      if [ "$found" -eq 1 ]; then
+        loc=${line#SLACKBUILD LOCATION: }
+        break
+      fi
+      ;;
+  esac
+done < "$INDEX"
+
+if [ -z "$loc" ]; then
+  echo "sbmk: package not found: $PKG"
+  exit 1
+fi
+
+# Normalize path
+loc=${loc#./}
+
+WORK="$TMPBASE/$PKG"
+SRC="$WORK/src"
+
+mkdir -p "$SRC"
+
+echo "==> fetching SlackBuild: $loc"
+rsync -a "$BASE/$loc/" "$SRC/"
+
+cd "$SRC"
+
+# Read REQUIRES from .info (shell-only)
+REQUIRES=""
+DOWNLOADS=""
+
+while IFS= read -r line; do
+  case "$line" in
+    REQUIRES=*)
+      REQUIRES=${line#REQUIRES=}
+      REQUIRES=${REQUIRES#\"}
+      REQUIRES=${REQUIRES%\"}
+      ;;
+    DOWNLOAD=*)
+      DOWNLOADS=${line#DOWNLOAD=}
+      DOWNLOADS=${DOWNLOADS#\"}
+      DOWNLOADS=${DOWNLOADS%\"}
+      ;;
+  esac
+done < "$PKG.info"
+
+if [ "$SHOW_DEPS" -eq 1 ]; then
+  echo "${REQUIRES:-none}"
+  exit 0
+fi
+
+# Download sources (SlackBuilds require this)
+fetch() {
+  url="$1"
+  file=${url##*/}
+
+  [ -f "$file" ] && return 0
+
+  if command -v curl >/dev/null 2>&1; then
+    curl -L -o "$file" "$url"
+  else
+    wget -O "$file" "$url"
+  fi
+}
+
+for url in $DOWNLOADS; do
+  echo "==> downloading $(basename "$url")"
+  fetch "$url"
+done
+
+echo "==> building $PKG"
+[ -n "$REQUIRES" ] && echo "==> requires: $REQUIRES"
+
+# Force SlackBuilds to use our tmpdir
+export TMP="$TMPBASE"
+
+sh "$PKG.SlackBuild"
+
+# Cleanup
+if [ "$KEEP" -ne 1 ]; then
+  rm -rf "$WORK"
+fi
+

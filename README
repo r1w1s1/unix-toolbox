@@ -1,0 +1,59 @@
+UNIX-TOOLBOX
+
+unix-toolbox is a small collection of self-contained Unix helper tools
+and scripts used in tmux, minimal window managers, and traditional
+Slackware- and BSD-style workflows.
+
+
+TOOLS
+
+The repository currently includes:
+
+- sbmk
+  Helper script for SlackBuild maintenance tasks.
+
+- sfetch
+  Small system information script focused on Slackware Linux.
+
+- tmux-status
+  Minimal system status script for use in the tmux status bar.
+
+
+OVERVIEW
+
+Each tool lives in its own directory and is documented locally.
+
+The tools are intentionally small and independent, with no shared
+framework, build system, or runtime dependency.
+
+
+DESIGN
+
+unix-toolbox follows a conservative Unix-style design:
+
+- one tool per directory
+- simple and readable implementations
+- no daemons or background services
+- no mandatory configuration files
+- suitable for minimal and traditional systems
+
+
+INSTALLATION
+
+There is no global installation procedure.
+
+Individual tools can be installed by copying them into a directory
+listed in PATH, for example:
+
+install -m 0755 toolname ~/.local/bin/toolname
+
+Refer to each tool’s README for usage details.
+
+
+LICENSE
+
+All tools in this repository are distributed under the same license,
+unless stated otherwise in the tool’s directory.
+
+See the LICENSE file at the repository root for details.
+

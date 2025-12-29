@@ -1,0 +1,192 @@
+TMUX-STATUS
+
+tmux-status.sh is a small, readable shell script that prints a single-line
+system status intended for use in the tmux status bar.
+
+It is designed for minimal and traditional Unix environments, favoring
+clarity, predictability, and direct access to system interfaces over
+frameworks or daemons.
+
+
+OVERVIEW
+
+tmux-status.sh outputs a compact summary of system information suitable
+for inclusion in tmux status-right or status-left.
+
+The script is intentionally simple and avoids background processes,
+configuration files, or persistent state.
+
+It aims to be:
+
+- small and easy to read
+- easy to audit and modify
+- predictable in behavior
+- suitable for tmux, minimal window managers, and panel-less setups
+- friendly to Slackware and other traditional Linux systems
+
+
+DISPLAYED INFORMATION
+
+tmux-status.sh displays:
+
+- CPU usage (percentage)
+- memory usage (used / total)
+- battery status with correct multi-battery handling
+- current X11 workspace (when available)
+- current date and time
+
+
+DESIGN PRINCIPLES
+
+tmux-status.sh follows a conservative, Unix-style design.
+
+In particular:
+
+- no daemons or background services
+- no caching or state files
+- no dependency on desktop environments
+- no integration with NetworkManager or systemd components
+
+All information is gathered at runtime using standard system interfaces.
+
+
+CPU USAGE
+
+CPU usage is obtained using vmstat.
+
+The script computes CPU usage as the inverse of idle time, which provides
+a stable and well-understood metric suitable for status displays.
+
+This approach is widely supported across Linux systems.
+
+
+MEMORY USAGE
+
+Memory usage is obtained using free.
+
+The displayed value represents used memory relative to total memory,
+formatted for quick readability in a tmux status line.
+
+
+BATTERY STATUS
+
+Battery information is read directly from /sys/class/power_supply.
+
+Features:
+
+- correct handling of multiple batteries (for example, ThinkPad systems)
+- support for both energy_* and charge_* interfaces
+- explicit state indicator:
+  - "+" charging
+  - "-" discharging
+  - "=" fully charged
+
+If no battery is present, the battery field is omitted.
+
+
+WORKSPACE DETECTION
+
+When running under X11, the current workspace is detected using EWMH
+properties via xprop.
+
+Specifically, tmux-status.sh reads:
+
+- _NET_CURRENT_DESKTOP
+
+If X11 is unavailable or the property cannot be read, the workspace field
+is omitted.
+
+
+DATE AND TIME
+
+The date and time are printed using the system date command, formatted
+for compact display in tmux.
+
+
+EXAMPLE OUTPUT
+
+Example output as shown in a tmux status bar:
+
+CPU:12% | MEM:3.1G/7.7G | BAT:78%- | WS:2 | 2025-01-29 21:47
+
+
+DEPENDENCIES
+
+tmux-status.sh relies only on tools commonly available on a standard
+Slackware installation.
+
+Required:
+
+- POSIX shell (/bin/sh)
+- coreutils
+- procps (for vmstat and free)
+- tmux
+
+Optional (for workspace display):
+
+- X11
+- xprop
+
+If X11 or xprop is unavailable, workspace information is skipped.
+
+
+INSTALLATION
+
+tmux-status.sh is a single shell script.
+
+To install locally:
+
+install -m 0755 tmux-status.sh ~/.local/bin/tmux-status.sh
+
+Or system-wide:
+
+install -m 0755 tmux-status.sh /usr/bin/tmux-status.sh
+
+
+TMUX CONFIGURATION
+
+To use tmux-status.sh in tmux, add the following to your ~/.tmux.conf:
+
+set -g status-right "#(~/.local/bin/tmux-status.sh)"
+
+Or, if installed system-wide:
+
+set -g status-right "#(/usr/bin/tmux-status.sh)"
+
+You may adjust status-right-length if needed:
+
+set -g status-right-length 100
+
+
+USAGE OUTSIDE TMUX
+
+Although designed for tmux, tmux-status.sh can be run directly from a
+terminal:
+
+tmux-status.sh
+
+This can be useful for testing or for use in other status bar tools.
+
+
+SCOPE AND LIMITATIONS
+
+tmux-status.sh is intentionally minimal.
+
+It does not provide:
+
+- icons or graphical elements
+- color output (unless handled by tmux)
+- network statistics
+- per-core CPU details
+
+The script is intended as a simple building block rather than a complete
+system monitor.
+
+
+LICENSE
+
+tmux-status.sh is distributed under the same license as the surrounding
+unix-toolbox repository.
+
+See the top-level LICENSE file for details.
+
