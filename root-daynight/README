@@ -1,0 +1,52 @@
+root-daynight
+=============
+
+root-daynight is a small X11 helper that switches the root window
+background between day and night modes based on local time.
+
+The script always applies a solid background color using xsetroot.
+Wallpaper support is optional and applied on top of the color.
+
+It is intended for traditional X11 window manager setups.
+
+
+Configuration
+-------------
+
+All settings are defined inside the script.
+
+DAY_COLOR / NIGHT_COLOR
+    Solid root background colors.
+
+DAY_WALLPAPER / NIGHT_WALLPAPER
+    Optional wallpapers. Leave empty to disable.
+
+DAY_START / NIGHT_START
+    Hours (0–23) when day and night modes start.
+
+SLEEP_TIME
+    Time in seconds between checks.
+
+
+Dependencies
+------------
+
+- X11
+- xsetroot
+- feh (only required if wallpapers are used)
+
+
+Usage
+-----
+
+Make the script executable and start it from your X session:
+
+    chmod +x root-daynight.sh
+    ./root-daynight.sh &
+
+
+Notes
+-----
+
+The script is X11-only. Wayland is not supported.
+
