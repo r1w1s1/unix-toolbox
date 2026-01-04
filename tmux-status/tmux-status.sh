@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 #
 # Copyright 2025  r1w1s1
 # All rights reserved.
@@ -20,26 +20,24 @@
 # OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
-# Minimal status script
-# CPU usage, memory usage, and correct multi-battery status
-#
-# Designed for:
-#   - tmux status line
-#   - dwm / pekwm / panel-less setups
+# Minimal tmux/X11 status script
 #
 # Properties:
 #   - POSIX sh
 #   - No daemons
 #   - No config files
 #   - Reads directly from /sys
-#   - Correct ThinkPad multi-battery handling
-#
+#   - X11 features auto-disable when unavailable
 
 cpu() {
+    command -v vmstat >/dev/null 2>&1 || return
+
     vmstat 1 2 | awk 'END { printf "CPU:%d%%", 100 - $15 }'
 }
 
 mem() {
+    command -v free >/dev/null 2>&1 || return
+ 
     free -h | awk '/^Mem:/ { printf "MEM:%s/%s", $3, $2 }'
 }
 
@@ -86,6 +84,8 @@ bat() {
 
 ws() {
     [ -z "$DISPLAY" ] && return
+    command -v xprop >/dev/null 2>&1 || return
+
     cur=$(xprop -root _NET_CURRENT_DESKTOP 2>/dev/null | awk '{print $NF}')
     [ -n "$cur" ] && printf "WS:%d" "$((cur + 1))"
 }
@@ -94,5 +94,10 @@ date_str() {
     date '+%Y-%m-%d %H:%M'
 }
 
-printf "%s | %s | %s | %s | %s\n" "$(cpu)" "$(mem)" "$(bat)" "$(ws)" "$(date_str)"
+printf "%s | %s | %s | %s | %s\n" \
+    "$(cpu)" \
+    "$(mem)" \
+    "$(bat)" \
+    "$(ws)" \
+    "$(date_str)"
 
