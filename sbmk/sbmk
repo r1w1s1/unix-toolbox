@@ -102,6 +102,8 @@ cd "$SRC"
 
 # Read REQUIRES from .info (shell-only)
 REQUIRES=""
+DOWNLOAD=""
+DOWNLOAD_X86_64=""
 DOWNLOADS=""
 
 while IFS= read -r line; do
@@ -112,12 +114,28 @@ while IFS= read -r line; do
       REQUIRES=${REQUIRES%\"}
       ;;
     DOWNLOAD=*)
-      DOWNLOADS=${line#DOWNLOAD=}
-      DOWNLOADS=${DOWNLOADS#\"}
-      DOWNLOADS=${DOWNLOADS%\"}
+      DOWNLOAD=${line#DOWNLOAD=}
+      DOWNLOAD=${DOWNLOAD#\"}
+      DOWNLOAD=${DOWNLOAD%\"}
+      ;;
+    DOWNLOAD_x86_64=*)
+      DOWNLOAD_X86_64=${line#DOWNLOAD_x86_64=}
+      DOWNLOAD_X86_64=${DOWNLOAD_X86_64#\"}
+      DOWNLOAD_X86_64=${DOWNLOAD_X86_64%\"}
       ;;
   esac
 done < "$PKG.info"
+
+ARCH=$(uname -m)
+
+if [ "$ARCH" = "x86_64" ] && [ -n "$DOWNLOAD_X86_64" ]; then
+  DOWNLOADS="$DOWNLOAD_X86_64"
+elif [ -n "$DOWNLOAD" ] && [ "$DOWNLOAD" != "UNSUPPORTED" ]; then
+  DOWNLOADS="$DOWNLOAD"
+else
+  echo "sbmk: $PKG is unsupported on $ARCH"
+  exit 1
+fi
 
 if [ "$SHOW_DEPS" -eq 1 ]; then
   echo "${REQUIRES:-none}"
