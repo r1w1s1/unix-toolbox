@@ -27,6 +27,13 @@ Usage:
 
 sbmk must be run as root, as required by SlackBuilds.
 
+Note:
+
+SlackBuilds using the Go toolchain require a properly initialized Go
+environment. On Slackware, this means ensuring that /etc/profile.d/go.sh
+has been sourced before running sbmk.
+
+sbmk does not source profile scripts automatically.
 
 Relation to sbotools:
 
