@@ -1,0 +1,74 @@
+scratch - disposable nvi scratchpad
+
+scratch is a small shell script that opens a disposable scratchpad
+file in nvi.
+
+The scratchpad is always recreated on startup and lives under /tmp.
+Nothing is preserved between runs.
+
+scratch is intended as a temporary text staging tool, not a notes
+application or document editor.
+
+A scratchpad in this context is a disposable working area.
+It is meant for shaping text temporarily, without ownership,
+continuity, or concern for loss.
+
+Once the text leaves the scratchpad, the scratchpad itself
+is expected to be discarded.
+
+
+Design characteristics:
+
+- always recreates the scratchpad file
+- uses /tmp for ephemeral storage
+- keeps no history, recovery, or reuse of content
+- requires no configuration
+
+
+Intended usage:
+
+Temporary staging of text before it is copied elsewhere.
+
+The scratchpad is not a document.
+If content matters, it belongs in a real file.
+
+
+Usage:
+
+  scratch
+
+The editor opens with the cursor positioned at the end of the file.
+Text is reshaped using standard nvi commands and yanked into other
+programs as needed.
+
+
+Relation to other tools:
+
+scratch complements workflows that use nvi for editing and tools
+such as RCS to protect real files.
+
+It is intentionally not integrated with version control, editors,
+or session management.
+
+Its purpose is deliberately narrow.
+
+
+Requirements:
+
+- POSIX sh
+- nvi
+- a writable /tmp directory
+
+
+Installation:
+
+Copy the script somewhere in your PATH, for example:
+
+  cp scratch ~/bin/
+  chmod +x ~/bin/scratch
+
+
+License:
+
+Public domain.
+

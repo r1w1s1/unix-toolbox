@@ -1,0 +1,53 @@
+#!/bin/sh
+#
+# nvi-scratch — disposable nvi scratchpad
+#
+# This script creates a fresh scratchpad file and opens it in nvi.
+# The file is always recreated to enforce a disposable, no-history workflow.
+#
+# Philosophy:
+#   - No persistence
+#   - No recovery
+#   - No guilt
+#
+# If content matters, it should graduate to a real file.
+#
+
+set -e
+
+SCRATCH_FILE="/tmp/scratch-notes"
+
+# Always start fresh
+if [ -f "$SCRATCH_FILE" ]; then
+    rm -f "$SCRATCH_FILE"
+fi
+
+# Create scratchpad with inline documentation
+cat > "$SCRATCH_FILE" << 'EOF'
+# nvi scratchpad — message staging
+#
+# Purpose:
+#   Temporary workspace for composing emails, patches, replies.
+#   Content is disposable. Do not save.
+#
+# Typical flow:
+#   1. Paste or type text
+#   2. Reword / trim / reorder
+#   3. Yank into another program
+#   4. :q! without thinking
+#
+# nvi usage reminder:
+#   - Cursor starts at end of file
+#   - Press 'A' to append after '#' and start typing
+#   - Think in paragraphs, not files
+#
+# Notes:
+#   - Replaces Geany "untitled" buffer
+#   - No formatting automation
+#   - No history by design
+#
+EOF
+
+# Open scratchpad
+nvi +$ "$SCRATCH_FILE"
+rm -f "$SCRATCH_FILE"
