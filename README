@@ -12,6 +12,13 @@ The repository currently includes:
 - sbmk
   Helper script for SlackBuild maintenance tasks.
 
+- mk-slackbuild
+  Generates a conservative SlackBuild skeleton intended to be edited
+  by hand.
+
+- scratch
+  Disposable nvi-based scratchpad for temporary text staging.
+
 - sfetch
   Small system information script focused on Slackware Linux.
 
@@ -45,7 +52,7 @@ There is no global installation procedure.
 Individual tools can be installed by copying them into a directory
 listed in PATH, for example:
 
-install -m 0755 toolname ~/.local/bin/toolname
+  install -m 0755 toolname ~/.local/bin/toolname
 
 Refer to each tool’s README for usage details.
 
