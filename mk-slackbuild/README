@@ -1,0 +1,38 @@
+mk-slackbuild.sh
+
+mk-slackbuild.sh is a small helper script that generates a conservative
+SlackBuild skeleton for Slackware and SlackBuilds.org.
+
+It creates a standard directory layout containing:
+
+  - PRGNAM.SlackBuild
+  - PRGNAM.info
+  - slack-desc
+  - README
+
+The generated SlackBuild follows traditional Slackware practices and
+is intended to be edited by hand before use.
+
+
+USAGE
+
+  mk-slackbuild.sh <prgnam> [version]
+
+If no version is provided, the placeholder value "UNKNOWN" is used.
+This forces a manual review before building or submitting.
+
+
+SCOPE
+
+This script only generates a starting point.  It does not download
+sources, resolve dependencies, or attempt to validate the build.
+
+The slack-desc file is generated with placeholders and must be edited
+manually.
+
+
+INTENDED USE
+
+This is a personal workflow tool for users already familiar with
+SlackBuilds and shell scripting.  It is not part of SlackBuilds.org.
+
