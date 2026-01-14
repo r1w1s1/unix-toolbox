@@ -1,13 +1,12 @@
 #!/bin/sh
 #
+# mk-slackbuild.sh
+#
+# Generate a conservative SlackBuild skeleton.
+# This is a starting point, not a finished SlackBuild.
+#
 # Copyright 2026 r1w1s1
 # All rights reserved.
-#
-# Redistribution and use of this script, with or without modification, is
-# permitted provided that the following conditions are met:
-#
-# 1. Redistributions of this script must retain the above copyright
-#    notice, this list of conditions and the following disclaimer.
 #
 #  THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR IMPLIED
 #  WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
@@ -24,7 +23,6 @@
 #
 # Generate a conservative SlackBuild skeleton.
 # This is a starting point, not a finished SlackBuild.
-#
 
 set -e
 
@@ -33,24 +31,26 @@ if [ $# -lt 1 ] || [ $# -gt 2 ]; then
   exit 1
 fi
 
-PRGNAM="$1"
-VERSION="${2:-UNKNOWN}"
-DIR="$PRGNAM"
+PRGNAM=$1
+VERSION=${2:-UNKNOWN}
+DIR=$PRGNAM
 
-if [ -e "$DIR" ]; then
-  echo "Directory '$DIR' already exists"
+if [ -e $DIR ]; then
+  echo "Directory $DIR already exists"
   exit 1
 fi
 
-mkdir "$DIR"
-cd "$DIR"
+mkdir $DIR
+cd $DIR
 
 # ------------------------------------------------------------
 # SlackBuild
 # ------------------------------------------------------------
 
-cat > "$PRGNAM.SlackBuild" << EOF
+cat > $PRGNAM.SlackBuild << EOF
 #!/bin/bash
+#
+# Slackware build script for $PRGNAM
 #
 # Copyright 2026 r1w1s1
 # All rights reserved.
@@ -61,7 +61,7 @@ cat > "$PRGNAM.SlackBuild" << EOF
 # 1. Redistributions of this script must retain the above copyright
 #    notice, this list of conditions and the following disclaimer.
 #
-#  THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR IMPLIED
+#  THIS SOFTWARE IS PROVIDED BY THE AUTHOR "AS IS" AND ANY EXPRESS OR IMPLIED
 #  WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
 #  MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.  IN NO
 #  EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
@@ -82,25 +82,25 @@ ARCH=\${ARCH:-}
 PKGTYPE=\${PKGTYPE:-tgz}
 
 if [ -n "\$PRINT_PACKAGE_NAME" ]; then
-  echo "\$PRGNAM-\$VERSION-\$ARCH-\$BUILD\$TAG.\$PKGTYPE"
+  echo \$PRGNAM-\$VERSION-\$ARCH-\$BUILD\$TAG.\$PKGTYPE
   exit 0
 fi
 
 if [ -z "\$ARCH" ]; then
-  case "\$(uname -m)" in
+  case \$(uname -m) in
     i?86) ARCH=i586 ;;
     arm*) ARCH=arm ;;
        *) ARCH=\$(uname -m) ;;
   esac
 fi
 
-if [ "\$ARCH" = "i586" ]; then
+if [ "\$ARCH" = i586 ]; then
   SLKCFLAGS="-O2 -march=i586 -mtune=i686"
   LIBDIRSUFFIX=""
-elif [ "\$ARCH" = "i686" ]; then
+elif [ "\$ARCH" = i686 ]; then
   SLKCFLAGS="-O2 -march=i686 -mtune=i686"
   LIBDIRSUFFIX=""
-elif [ "\$ARCH" = "x86_64" ]; then
+elif [ "\$ARCH" = x86_64 ]; then
   SLKCFLAGS="-O2 -fPIC"
   LIBDIRSUFFIX="64"
 else
@@ -114,19 +114,19 @@ OUTPUT=\${OUTPUT:-/tmp}
 
 set -e
 
-rm -rf "\$PKG"
-mkdir -p "\$TMP" "\$PKG" "\$OUTPUT"
+rm -rf \$PKG
+mkdir -p \$TMP \$PKG \$OUTPUT
 
-cd "\$TMP"
-rm -rf "\$PRGNAM-\$VERSION"
+cd \$TMP
+rm -rf \$PRGNAM-\$VERSION
 
-if ! ls "\$CWD/\$PRGNAM-\$VERSION.tar."?z* >/dev/null 2>&1; then
+if ! ls \$CWD/\$PRGNAM-\$VERSION.tar.?z* >/dev/null 2>&1; then
   echo "Source archive for \$PRGNAM-\$VERSION not found."
   exit 1
 fi
 
-tar xvf "\$CWD/\$PRGNAM-\$VERSION.tar."?z*
-cd "\$PRGNAM-\$VERSION"
+tar xvf \$CWD/\$PRGNAM-\$VERSION.tar.?z*
+cd \$PRGNAM-\$VERSION
 
 chown -R root:root .
 
@@ -144,7 +144,7 @@ chown -R root:root .
 #   --localstatedir=/var
 #
 # make
-# make install DESTDIR="\$PKG"
+# make install DESTDIR=\$PKG
 
 # === CMAKE ===
 # mkdir build
@@ -158,7 +158,7 @@ chown -R root:root .
 #   ..
 #
 # make
-# make install DESTDIR="\$PKG"
+# make install DESTDIR=\$PKG
 # cd ..
 
 # === MESON ===
@@ -173,48 +173,44 @@ chown -R root:root .
 #   ..
 #
 # ninja
-# DESTDIR="\$PKG" ninja install
+# DESTDIR=\$PKG ninja install
 # cd ..
 
-find "\$PKG" -print0 | xargs -0 file | grep ELF | cut -f1 -d: | \
+find \$PKG -print0 | xargs -0 file | grep ELF | cut -f1 -d: | \\
   xargs strip --strip-unneeded 2>/dev/null || true
 
-if [ -d "\$PKG/usr/man" ]; then
-  ( cd "\$PKG/usr/man"
-    find . -type f -exec gzip -9 {} \;
-    for i in \$(find . -type l); do
-      ln -s \$(readlink "\$i").gz "\$i.gz"
-      rm "\$i"
-    done
-  )
-fi
+for mandir in \$PKG/usr/man \$PKG/usr/share/man; do
+  if [ -d "\$mandir" ]; then
+    ( cd "\$mandir"
+      find . -type f -exec gzip -9 {} \\;
+      for i in \$(find . -type l); do
+        ln -s "\$(readlink "\$i").gz" "\$i.gz"
+        rm "\$i"
+      done
+    )
+  fi
+done
 
-if [ -d "\$PKG/usr/info" ]; then
-  gzip -9 "\$PKG/usr/info"/*.info
-  rm -f "\$PKG/usr/info/dir"
-fi
+mkdir -p \$PKG/usr/doc/\$PRGNAM-\$VERSION
+cp -a COPYING* NEWS* README* TODO* \\
+  \$PKG/usr/doc/\$PRGNAM-\$VERSION 2>/dev/null || true
 
-mkdir -p "\$PKG/usr/doc/\$PRGNAM-\$VERSION"
-cp -a COPYING* NEWS* README* TODO* \
-  "\$PKG/usr/doc/\$PRGNAM-\$VERSION"
+cat \$CWD/\$PRGNAM.SlackBuild > \$PKG/usr/doc/\$PRGNAM-\$VERSION/\$PRGNAM.SlackBuild
 
-cat "\$CWD/\$PRGNAM.SlackBuild" > \
-  "\$PKG/usr/doc/\$PRGNAM-\$VERSION/\$PRGNAM.SlackBuild"
+mkdir -p \$PKG/install
+cp \$CWD/slack-desc \$PKG/install/slack-desc
 
-mkdir -p "\$PKG/install"
-cp "\$CWD/slack-desc" "\$PKG/install/slack-desc"
-
-cd "\$PKG"
-/sbin/makepkg -l y -c n "\$OUTPUT/\$PRGNAM-\$VERSION-\$ARCH-\$BUILD\$TAG.\$PKGTYPE"
+cd \$PKG
+/sbin/makepkg -l y -c n \$OUTPUT/\$PRGNAM-\$VERSION-\$ARCH-\$BUILD\$TAG.\$PKGTYPE
 EOF
 
-chmod +x "$PRGNAM.SlackBuild"
+chmod +x $PRGNAM.SlackBuild
 
 # ------------------------------------------------------------
-# .info
+# .info (quoted values – REQUIRED)
 # ------------------------------------------------------------
 
-cat > "$PRGNAM.info" << EOF
+cat > $PRGNAM.info << EOF
 PRGNAM="$PRGNAM"
 VERSION="$VERSION"
 HOMEPAGE=""
@@ -231,7 +227,7 @@ EOF
 # slack-desc
 # ------------------------------------------------------------
 
-cat > "slack-desc" << EOF
+cat > slack-desc << EOF
 # HOW TO EDIT THIS FILE:
 # The "handy ruler" below makes it easier to edit a package description.  Line
 # up the first '|' above the ':' following the base package name, and the '|' on
@@ -239,7 +235,7 @@ cat > "slack-desc" << EOF
 # exactly 11 lines for the formatting to be correct.  It's also customary to
 # leave one space after the ':'.
 
-       |-----handy-ruler------------------------------------------------------|
+         |-----handy-ruler------------------------------------------------------|
 $PRGNAM: $PRGNAM (short description)
 $PRGNAM:
 $PRGNAM: One or two lines describing what the software does.
@@ -257,7 +253,7 @@ EOF
 # README
 # ------------------------------------------------------------
 
-cat > "README" << EOF
+cat > README << EOF
 $PRGNAM
 
 Brief description of the software.

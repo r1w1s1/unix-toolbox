@@ -1,0 +1,163 @@
+#!/bin/sh
+#
+# Copyright 2025 r1w1s1
+# All rights reserved.
+#
+# Redistribution and use of this script, with or without modification, is
+# permitted provided that the following conditions are met:
+#
+# 1. Redistributions of this script must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+#
+# THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR IMPLIED
+# WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+# MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO
+# EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+# PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+# OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+# WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+# OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+# ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
+# t — minimal todo.txt manager
+# Plain text tasks, manual priorities, honest sorting.
+
+todo_dir="${TODOTXT_DIR:-$HOME/projects/personal/todo}"
+todo_file="$todo_dir/todo.txt"
+editor="${VISUAL:-${EDITOR:-nvi}}"
+
+mkdir -p "$todo_dir" || exit 1
+touch "$todo_file" || exit 1
+
+cmd="$1"
+
+case "$cmd" in
+    ""|edit|e)
+        exec "$editor" "$todo_file"
+        ;;
+
+    list|l)
+        nl -ba "$todo_file" \
+        | grep -v '^[[:space:]]*[0-9]\+[[:space:]]*$' \
+        | sort -k2.2,2.3 -k3 \
+        | nl -w2 -s'  ' \
+        | sed 's/^[[:space:]]*[0-9]\+[[:space:]]*//'
+        ;;
+
+    add|a)
+        shift
+        [ -z "$*" ] && {
+            echo "Usage: t add <task>" >&2
+            exit 1
+        }
+        printf '%s\n' "$*" >>"$todo_file"
+        echo "[+] $*"
+        ;;
+
+    done|d)
+        shift
+        [ -z "$1" ] && {
+            echo "Usage: t done <number|pattern>" >&2
+            exit 1
+        }
+
+        tmp=$(mktemp) || exit 1
+
+        # Numeric done (maps list number -> file line)
+        if printf '%s' "$1" | grep -Eq '^[0-9]+$'; then
+            line=$(
+                nl -ba "$todo_file" \
+                | grep -v '^[[:space:]]*[0-9]\+[[:space:]]*$' \
+                | sort -k2.2,2.3 -k3 \
+                | sed -n "${1}p" \
+                | awk '{print $1}'
+            )
+
+            [ -z "$line" ] && {
+                echo "error: no such task number: $1" >&2
+                rm -f "$tmp"
+                exit 1
+            }
+
+            sed "${line}{
+                /^[[:space:]]*x /!s/^/x /
+            }" "$todo_file" >"$tmp"
+
+            mv "$tmp" "$todo_file"
+            echo "[✓] Marked done: $1"
+            exit 0
+        fi
+
+        # Pattern-based done
+        safe=$(printf '%s' "$1" | sed 's/[][\/.^$*]/\\&/g')
+
+        sed "0,/^.*$safe.*/{
+            /^[[:space:]]*x /!s/^/x /
+        }" "$todo_file" >"$tmp"
+
+        mv "$tmp" "$todo_file"
+        echo "[✓] Marked done: $1"
+        ;;
+
+    push|p)
+        (
+            cd "$todo_dir" || exit 1
+            git rev-parse --is-inside-work-tree >/dev/null 2>&1 || exit 0
+            git add todo.txt
+            git commit -m "todo: update $(date +%Y-%m-%d)" >/dev/null 2>&1 || true
+            git push
+        )
+        ;;
+
+    help|-h|--help)
+        cat <<EOF
+t — minimal todo.txt manager
+
+Usage:
+  t                 Edit todo.txt (default)
+  t edit | e         Edit todo.txt
+  t list | l         List tasks (sorted, numbered)
+  t add  | a <task>  Add a new task
+  t done | d <n|re>  Mark task done (number or pattern)
+  t push | p         Commit & push changes to git
+
+Notes:
+- Tasks are plain text
+- Priorities are manual: (A), (B), (C)...
+- Sorting is a view; the file is the source of truth
+
+Examples:
+
+  # Add tasks with priority
+  t add "(A) Finish article about aerc + postfix + mbsync"
+  t add "(B) Review SlackBuild for bsddialog"
+  t add "(C) Test Slackware installer GRUB support"
+
+  # Add a quick task
+  t add Write short note about nvi workflow
+
+  # List tasks (sorted and numbered)
+  t list
+
+  # Mark task done by number
+  t done 2
+
+  # Or mark done by pattern
+  t done bsddialog
+
+  # Commit and push (if todo.txt is in a git repo)
+  t push
+
+Environment:
+  TODOTXT_DIR   Path to todo directory (default: ~/projects/personal/todo)
+  EDITOR/VISUAL Preferred editor (default: nvi)
+EOF
+        ;;
+
+    *)
+        echo "Invalid command. Use: t help" >&2
+        exit 1
+        ;;
+esac
+

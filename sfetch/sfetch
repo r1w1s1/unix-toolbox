@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/sh
 #
 # Copyright 2025  r1w1s1
 # All rights reserved.
@@ -25,7 +25,6 @@
 # Based on ufetch by J. Schillinger.
 # Window manager detection uses EWMH via xprop only (no guessing).
 # Non-EWMH window managers may set SFETCH_WM manually.
-#
 
 ## BASIC INFO
 

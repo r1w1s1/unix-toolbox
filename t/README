@@ -1,0 +1,74 @@
+t is a small, editor-centric todo.txt manager for plain text task lists.
+
+It is intentionally minimal: tasks are lines of text, the file is the
+source of truth, and no metadata or background services are involved.
+
+
+OVERVIEW
+
+t provides a thin wrapper around a single todo.txt file.
+
+It is designed for users who prefer to work directly in text editors
+and want predictable behavior over feature-rich task systems.
+
+
+TASK MODEL
+
+Each task is a single line of text.
+
+Common conventions (not enforced):
+
+- priorities written as (A), (B), (C), ...
+- completed tasks prefixed with "x "
+
+All other content is free-form.
+
+
+LISTING AND LINE NUMBERS
+
+"t list" displays tasks sorted for convenience.
+
+The displayed numbers are the original file line numbers.
+Operations using numbers (for example: "t done 3") always refer to
+these file line numbers, not to display order.
+
+
+MARKING TASKS AS DONE
+
+Tasks can be marked as done:
+
+- by file line number
+- by matching a text pattern
+
+Only one task is modified per invocation.
+
+
+EXAMPLE USAGE
+
+t add "(A) Finish article about aerc + postfix + mbsync"
+t add "(B) Review SlackBuild for bsddialog"
+t add Write short note about nvi workflow
+
+t list
+t done 2
+t done bsddialog
+t push
+
+
+DEPENDENCIES
+
+- POSIX shell (/bin/sh)
+- coreutils
+- grep, sed, awk, sort, nl
+
+
+INSTALLATION
+
+install -m 0755 t ~/.local/bin/t
+# or system-wide:
+install -m 0755 t /usr/bin/t
+
+
+LICENSE
+
+BSD-style license. See source file header for details.
