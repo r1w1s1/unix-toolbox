@@ -1,3 +1,4 @@
+#!/bin/sh
 #!/usr/bin/env bash
 #
 # Copyright 2025  r1w1s1
@@ -21,11 +22,14 @@
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 # root-daynight.sh
-# Simple day/night root background and wallpaper switcher (X11 only)
 #
-# Design:
-# - Solid color is always applied (primary)
-# - Wallpaper is optional and applied on top (secondary)
+# Simple day/night root background switcher for X11.
+#
+# Design principles:
+# - Always set a solid root color (primary, fast, no dependencies)
+# - Optional wallpaper overlay (secondary, via feh)
+# - Long-running loop with stable process count
+# - Safe to call from xinitrc (will not duplicate)
 #
 
 # ---------------------------------------------------------------------
@@ -39,10 +43,30 @@ NIGHT_COLOR="#24272d"
 DAY_WALLPAPER=""
 NIGHT_WALLPAPER=""
 
-DAY_START=7     # 07:00
+DAY_START=9     # 09:00
 NIGHT_START=19  # 19:00
 
-SLEEP_TIME=300  # seconds
+SLEEP_TIME=300  # seconds between checks
+
+# ---------------------------------------------------------------------
+# Internal state / locking
+# ---------------------------------------------------------------------
+
+PIDFILE="${XDG_RUNTIME_DIR:-/tmp}/root-daynight.pid"
+
+# Prevent multiple instances
+if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
+    exit 0
+fi
+
+echo $$ > "$PIDFILE"
+
+cleanup() {
+    rm -f "$PIDFILE"
+    exit 0
+}
+
+trap cleanup INT TERM EXIT
 
 # ---------------------------------------------------------------------
 # Dependencies
@@ -53,7 +77,7 @@ command -v xsetroot >/dev/null 2>&1 || {
     exit 1
 }
 
-# feh is only required if wallpapers are used
+# feh is only required if wallpapers are enabled
 if [ -n "$DAY_WALLPAPER" ] || [ -n "$NIGHT_WALLPAPER" ]; then
     command -v feh >/dev/null 2>&1 || {
         echo "root-daynight: feh not found (required for wallpaper support)" >&2
