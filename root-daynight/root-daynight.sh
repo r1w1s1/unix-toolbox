@@ -52,6 +52,7 @@ SLEEP_TIME=300  # seconds between checks
 # Internal state / locking
 # ---------------------------------------------------------------------
 
+# /run/user/<UID>/root-daynight.pid
 PIDFILE="${XDG_RUNTIME_DIR:-/tmp}/root-daynight.pid"
 
 # Prevent multiple instances
