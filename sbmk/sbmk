@@ -22,12 +22,11 @@
 
 set -eu
 
-# SlackBuilds.org base (Slackware 15.0)
-BASE="rsync://slackbuilds.org/slackbuilds/15.0"
+SBO_VER="15.0"
+SBO_RSYNC="rsync://slackbuilds.org/slackbuilds/$SBO_VER"
 
-# sbmk workspace
-TMPBASE="/tmp/sbmk"
-INDEX="$TMPBASE/SLACKBUILDS.TXT"
+WORKBASE="/tmp/sbmk"
+INDEX="$WORKBASE/SLACKBUILDS.TXT"
 
 KEEP=0
 SHOW_DEPS=0
@@ -50,29 +49,24 @@ for a in "$@"; do
   esac
 done
 
-# SlackBuilds are meant to be run as root
-if [ "$(id -u)" -ne 0 ]; then
-  echo "sbmk: must be run as root"
-  exit 1
-fi
+# must be root
+[ "$(id -u)" -ne 0 ] && { echo "sbmk: must be run as root"; exit 1; }
 
-mkdir -p "$TMPBASE"
+mkdir -p "$WORKBASE"
 
-# Fetch SLACKBUILDS.TXT if missing
+# fetch index
 if [ ! -f "$INDEX" ]; then
   echo "==> fetching SLACKBUILDS.TXT"
-  rsync "$BASE/SLACKBUILDS.TXT" "$INDEX"
+  rsync "$SBO_RSYNC/SLACKBUILDS.TXT" "$INDEX"
 fi
 
-# Locate package (shell-only parsing)
+# locate package
 found=0
 loc=""
 
 while IFS= read -r line; do
   case "$line" in
-    "SLACKBUILD NAME: $PKG")
-      found=1
-      ;;
+    "SLACKBUILD NAME: $PKG") found=1 ;;
     "SLACKBUILD LOCATION:"*)
       if [ "$found" -eq 1 ]; then
         loc=${line#SLACKBUILD LOCATION: }
@@ -82,29 +76,23 @@ while IFS= read -r line; do
   esac
 done < "$INDEX"
 
-if [ -z "$loc" ]; then
-  echo "sbmk: package not found: $PKG"
-  exit 1
-fi
+[ -z "$loc" ] && { echo "sbmk: package not found: $PKG"; exit 1; }
 
-# Normalize path
 loc=${loc#./}
 
-WORK="$TMPBASE/$PKG"
-SRC="$WORK/src"
-
-mkdir -p "$SRC"
+# prepare work dir
+WORK="$WORKBASE/$PKG"
+mkdir -p "$WORK"
 
 echo "==> fetching SlackBuild: $loc"
-rsync -a "$BASE/$loc/" "$SRC/"
+rsync -a "$SBO_RSYNC/$loc/" "$WORK/"
 
-cd "$SRC"
+cd "$WORK"
 
-# Read REQUIRES from .info (shell-only)
+# parse .info
 REQUIRES=""
 DOWNLOAD=""
 DOWNLOAD_X86_64=""
-DOWNLOADS=""
 
 while IFS= read -r line; do
   case "$line" in
@@ -133,7 +121,7 @@ if [ "$ARCH" = "x86_64" ] && [ -n "$DOWNLOAD_X86_64" ]; then
 elif [ -n "$DOWNLOAD" ] && [ "$DOWNLOAD" != "UNSUPPORTED" ]; then
   DOWNLOADS="$DOWNLOAD"
 else
-  echo "sbmk: $PKG is unsupported on $ARCH"
+  echo "sbmk: $PKG unsupported on $ARCH"
   exit 1
 fi
 
@@ -142,7 +130,7 @@ if [ "$SHOW_DEPS" -eq 1 ]; then
   exit 0
 fi
 
-# Download sources (SlackBuilds require this)
+# download sources into CWD
 fetch() {
   url="$1"
   file=${url##*/}
@@ -161,16 +149,12 @@ for url in $DOWNLOADS; do
   fetch "$url"
 done
 
+# build (DO NOT override TMP)
 echo "==> building $PKG"
 [ -n "$REQUIRES" ] && echo "==> requires: $REQUIRES"
 
-# Force SlackBuilds to use our tmpdir
-export TMP="$TMPBASE"
-
 sh "$PKG.SlackBuild"
 
-# Cleanup
-if [ "$KEEP" -ne 1 ]; then
-  rm -rf "$WORK"
-fi
+# cleanup
+[ "$KEEP" -ne 1 ] && rm -rf "$WORK"
 
