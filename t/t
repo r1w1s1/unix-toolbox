@@ -37,14 +37,23 @@ case "$cmd" in
         exec "$editor" "$todo_file"
         ;;
 
-    list|l)
-        nl -ba "$todo_file" \
-        | grep -v '^[[:space:]]*[0-9]\+[[:space:]]*$' \
-        | sort -k2.2,2.3 -k3 \
-        | nl -w2 -s'  ' \
-        | sed 's/^[[:space:]]*[0-9]\+[[:space:]]*//'
-        ;;
-
+	list|l)
+    	printf "\n"
+    	nl -ba "$todo_file" \
+    	| grep -v '^[[:space:]]*[0-9]\+[[:space:]]*$' \
+    	| awk '
+        	{
+            	prio = "Z"
+            	if ($0 ~ /\([A-Z]\)/)
+                	prio = substr($0, index($0,"(")+1, 1)
+            	printf "%s %s\n", prio, $0
+        	}
+    	' \
+    	| sort -k1,1 \
+    	| cut -d' ' -f2- \
+    	| nl -w2 -s' ' \
+    	| sed 's/^[[:space:]]*[0-9]\+[[:space:]]*//'
+    ;;
     add|a)
         shift
         [ -z "$*" ] && {
