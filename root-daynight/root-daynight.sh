@@ -1,5 +1,4 @@
 #!/bin/sh
-#!/usr/bin/env bash
 #
 # Copyright 2025  r1w1s1
 # All rights reserved.
@@ -56,8 +55,11 @@ SLEEP_TIME=300  # seconds between checks
 PIDFILE="${XDG_RUNTIME_DIR:-/tmp}/root-daynight.pid"
 
 # Prevent multiple instances
-if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
-    exit 0
+if [ -f "$PIDFILE" ]; then
+    OLD_PID=$(cat "$PIDFILE" 2>/dev/null)
+    if [ -n "$OLD_PID" ] && kill -0 "$OLD_PID" 2>/dev/null; then
+        exit 0
+    fi
 fi
 
 echo $$ > "$PIDFILE"
@@ -87,13 +89,31 @@ if [ -n "$DAY_WALLPAPER" ] || [ -n "$NIGHT_WALLPAPER" ]; then
 fi
 
 # ---------------------------------------------------------------------
+# Validate wallpaper files
+# ---------------------------------------------------------------------
+
+if [ -n "$DAY_WALLPAPER" ] && [ ! -f "$DAY_WALLPAPER" ]; then
+    echo "root-daynight: Warning: DAY_WALLPAPER not found: $DAY_WALLPAPER" >&2
+    DAY_WALLPAPER=""
+fi
+
+if [ -n "$NIGHT_WALLPAPER" ] && [ ! -f "$NIGHT_WALLPAPER" ]; then
+    echo "root-daynight: Warning: NIGHT_WALLPAPER not found: $NIGHT_WALLPAPER" >&2
+    NIGHT_WALLPAPER=""
+fi
+
+# ---------------------------------------------------------------------
 # Main loop
 # ---------------------------------------------------------------------
 
 STATE=""
 
 while :; do
-    HOUR=$(date +%H)
+    # Strip leading zero to avoid octal interpretation issues
+    HOUR=$(date +%H | sed 's/^0//')
+    
+    # Handle empty string (midnight edge case)
+    [ -z "$HOUR" ] && HOUR=0
 
     if [ "$HOUR" -ge "$NIGHT_START" ] || [ "$HOUR" -lt "$DAY_START" ]; then
         NEW_STATE="night"
@@ -119,4 +139,3 @@ while :; do
 
     sleep "$SLEEP_TIME"
 done
-
