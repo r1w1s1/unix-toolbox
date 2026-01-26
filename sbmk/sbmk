@@ -20,53 +20,109 @@
 # OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-set -eu
+set -euo pipefail
 
-SBO_VER="15.0"
-SBO_RSYNC="rsync://slackbuilds.org/slackbuilds/$SBO_VER"
+SBO_VER="${SBO_VER:-15.0}"
+WORKBASE="${WORKBASE:-/tmp/sbmk}"
 
-WORKBASE="/tmp/sbmk"
+BASE_URL="https://slackbuilds.org/slackbuilds/$SBO_VER"
+INDEX_URL="$BASE_URL/SLACKBUILDS.TXT.gz"
 INDEX="$WORKBASE/SLACKBUILDS.TXT"
 
 KEEP=0
 SHOW_DEPS=0
 
-usage() {
-  echo "usage: sbmk PACKAGE [--deps] [--keep]"
+die() {
+  echo "sbmk: $*" >&2
   exit 1
 }
+
+msg() {
+  echo "==> $*"
+}
+
+usage() {
+  cat <<EOF
+usage: sbmk PACKAGE [--deps] [--keep]
+
+options:
+  --deps    show dependencies and exit
+  --keep    keep work directory
+
+env:
+  SBO_VER   SlackBuilds version (default: 15.0)
+  WORKBASE  working directory (default: /tmp/sbmk)
+EOF
+  exit 1
+}
+
+# ---- argument parsing -------------------------------------------------
 
 [ $# -lt 1 ] && usage
 
 PKG="$1"
 shift
 
-for a in "$@"; do
-  case "$a" in
+case "$PKG" in
+  -*)
+    usage
+    ;;
+esac
+
+for arg in "$@"; do
+  case "$arg" in
     --deps) SHOW_DEPS=1 ;;
     --keep) KEEP=1 ;;
     *) usage ;;
   esac
 done
 
-# must be root
-[ "$(id -u)" -ne 0 ] && { echo "sbmk: must be run as root"; exit 1; }
+case "$PKG" in
+  */*|*..*)
+    die "invalid package name: $PKG"
+    ;;
+esac
 
 mkdir -p "$WORKBASE"
 
-# fetch index
-if [ ! -f "$INDEX" ]; then
-  echo "==> fetching SLACKBUILDS.TXT"
-  rsync "$SBO_RSYNC/SLACKBUILDS.TXT" "$INDEX"
+# ---- fetch index ------------------------------------------------------
+
+msg "fetching SLACKBUILDS.TXT.gz"
+
+TMP_GZ="$INDEX.tmp.gz"
+
+if command -v curl >/dev/null 2>&1; then
+  if [ -f "$INDEX" ]; then
+    curl -fsSL -z "$INDEX" "$INDEX_URL" -o "$TMP_GZ" || true
+  else
+    curl -fsSL "$INDEX_URL" -o "$TMP_GZ" \
+      || die "failed to fetch SLACKBUILDS.TXT.gz"
+  fi
+
+  # Only decompress if something was actually downloaded
+  if [ -s "$TMP_GZ" ]; then
+    gunzip -c "$TMP_GZ" > "$INDEX"
+  fi
+
+  rm -f "$TMP_GZ"
+else
+  wget -qN "$INDEX_URL" -O "$TMP_GZ" \
+    || die "failed to fetch SLACKBUILDS.TXT.gz"
+
+  gunzip -c "$TMP_GZ" > "$INDEX"
+  rm -f "$TMP_GZ"
 fi
 
-# locate package
+# ---- locate package ---------------------------------------------------
+
 found=0
 loc=""
 
 while IFS= read -r line; do
   case "$line" in
-    "SLACKBUILD NAME: $PKG") found=1 ;;
+    "SLACKBUILD NAME: $PKG")
+      found=1
+      ;;
     "SLACKBUILD LOCATION:"*)
       if [ "$found" -eq 1 ]; then
         loc=${line#SLACKBUILD LOCATION: }
@@ -76,20 +132,39 @@ while IFS= read -r line; do
   esac
 done < "$INDEX"
 
-[ -z "$loc" ] && { echo "sbmk: package not found: $PKG"; exit 1; }
+[ -z "$loc" ] && die "package not found: $PKG"
 
 loc=${loc#./}
 
-# prepare work dir
+# ---- prepare workdir --------------------------------------------------
+
 WORK="$WORKBASE/$PKG"
 mkdir -p "$WORK"
 
-echo "==> fetching SlackBuild: $loc"
-rsync -a "$SBO_RSYNC/$loc/" "$WORK/"
+msg "fetching SlackBuild: $loc"
+
+for f in \
+  "$PKG.SlackBuild" \
+  "$PKG.info" \
+  "slack-desc"
+do
+  url="$BASE_URL/$loc/$f"
+  if command -v curl >/dev/null 2>&1; then
+    curl -fsSL "$url" -o "$WORK/$f" \
+      || die "failed to fetch $f"
+  else
+    wget -qO "$WORK/$f" "$url" \
+      || die "failed to fetch $f"
+  fi
+done
 
 cd "$WORK"
 
-# parse .info
+# ---- parse .info ------------------------------------------------------
+
+INFO="$PKG.info"
+[ -f "$INFO" ] || die "missing $INFO"
+
 REQUIRES=""
 DOWNLOAD=""
 DOWNLOAD_X86_64=""
@@ -112,7 +187,7 @@ while IFS= read -r line; do
       DOWNLOAD_X86_64=${DOWNLOAD_X86_64%\"}
       ;;
   esac
-done < "$PKG.info"
+done < "$INFO"
 
 ARCH=$(uname -m)
 
@@ -121,19 +196,25 @@ if [ "$ARCH" = "x86_64" ] && [ -n "$DOWNLOAD_X86_64" ]; then
 elif [ -n "$DOWNLOAD" ] && [ "$DOWNLOAD" != "UNSUPPORTED" ]; then
   DOWNLOADS="$DOWNLOAD"
 else
-  echo "sbmk: $PKG unsupported on $ARCH"
-  exit 1
+  die "$PKG unsupported on $ARCH"
 fi
+
+# ---- deps only mode ---------------------------------------------------
 
 if [ "$SHOW_DEPS" -eq 1 ]; then
   echo "${REQUIRES:-none}"
   exit 0
 fi
 
-# download sources into CWD
+# ---- must be root from here on ----------------------------------------
+
+[ "$(id -u)" -eq 0 ] || die "must be run as root"
+
+# ---- download sources -------------------------------------------------
+
 fetch() {
-  url="$1"
-  file=${url##*/}
+  local url="$1"
+  local file="${url##*/}"
 
   [ -f "$file" ] && return 0
 
@@ -145,16 +226,22 @@ fetch() {
 }
 
 for url in $DOWNLOADS; do
-  echo "==> downloading $(basename "$url")"
-  fetch "$url"
+  msg "downloading $(basename "$url")"
+  fetch "$url" || die "failed to download $url"
 done
 
-# build (DO NOT override TMP)
-echo "==> building $PKG"
-[ -n "$REQUIRES" ] && echo "==> requires: $REQUIRES"
+# ---- build ------------------------------------------------------------
 
-sh "$PKG.SlackBuild"
+msg "building $PKG"
+[ -n "$REQUIRES" ] && msg "requires: $REQUIRES"
 
-# cleanup
-[ "$KEEP" -ne 1 ] && rm -rf "$WORK"
+sh "$PKG.SlackBuild" || die "build failed"
+
+# ---- cleanup ----------------------------------------------------------
+
+if [ "$KEEP" -ne 1 ]; then
+  rm -rf "$WORK"
+fi
+
+msg "done"
 
