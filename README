@@ -19,7 +19,7 @@ The repository currently includes:
 - scratch
   Disposable nvi-based scratchpad for temporary text staging.
 
-- sfetch
+- slackfetch
   Small system information script focused on Slackware Linux.
 
 - t

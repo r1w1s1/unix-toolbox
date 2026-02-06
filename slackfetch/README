@@ -1,6 +1,6 @@
-SFETCH
+SLACKFETCH
 
-sfetch is a small, readable system information script focused exclusively
+slackfetch is a small, readable system information script focused exclusively
 on Slackware Linux.
 
 It is derived from ufetch by J. Schillinger, with Slackware-specific
@@ -10,7 +10,7 @@ dependencies, and no fragile heuristics.
 
 OVERVIEW
 
-sfetch displays a compact summary of system information, intended for
+slackfetch displays a compact summary of system information, intended for
 interactive use, screenshots, and login shells.
 
 It aims to be:
@@ -24,7 +24,7 @@ It aims to be:
 
 DISPLAYED INFORMATION
 
-sfetch shows:
+slackfetch shows:
 
 - user and hostname
 - operating system (from /etc/slackware-version)
@@ -37,7 +37,7 @@ sfetch shows:
 
 DESIGN PRINCIPLES
 
-sfetch intentionally avoids heuristic detection methods.
+slackfetch intentionally avoids heuristic detection methods.
 
 In particular:
 
@@ -54,7 +54,7 @@ WINDOW MANAGER DETECTION
 Window manager detection relies exclusively on X11 EWMH properties,
 queried via xprop.
 
-Specifically, sfetch reads:
+Specifically, slackfetch reads:
 
 - _NET_SUPPORTING_WM_CHECK
 - _NET_WM_NAME
@@ -76,9 +76,9 @@ EWMH properties.
 In these cases, the window manager name can be specified explicitly via
 an environment variable:
 
-export SFETCH_WM="mwm"
+export SLACKFETCH_WM="mwm"
 
-sfetch will then display the value of SFETCH_WM as the window manager.
+slackfetch will then display the value of SLACKFETCH_WM as the window manager.
 
 
 SHELL DETECTION
@@ -101,9 +101,9 @@ If EDITOR is unset, the editor field is left empty.
 
 EXAMPLE OUTPUT
 
-Running sfetch on a Slackware system with an EWMH-compliant window manager:
+Running slackfetch on a Slackware system with an EWMH-compliant window manager:
 
-$ sfetch
+$ slackfetch
 
      ________    r1w1s1@RachaelTyrell.dev.local
     /  ______|   OS:        Slackware 15.0+
@@ -114,11 +114,11 @@ $ sfetch
   |____________  WM:        pekwm
 
 
-Running sfetch on a system using a non-EWMH window manager
+Running slackfetch on a system using a non-EWMH window manager
 (with manual override):
 
-export SFETCH_WM="mwm"
-sfetch
+export SLACKFETCH_WM="mwm"
+slackfetch
 
      ________    r1w1s1@RachaelTyrell.dev.local
     /  ______|   OS:        Slackware 15.0+
@@ -129,9 +129,9 @@ sfetch
   |____________  WM:        mwm
 
 
-Running sfetch on a headless or server system (no X11):
+Running slackfetch on a headless or server system (no X11):
 
-$ sfetch
+$ slackfetch
 
      ________    user@jumpbox
     /  ______|   OS:        Slackware 15.0+
@@ -144,7 +144,7 @@ $ sfetch
 
 DEPENDENCIES
 
-sfetch relies only on tools available in a standard Slackware X11
+slackfetch relies only on tools available in a standard Slackware X11
 installation.
 
 Required:
@@ -158,37 +158,37 @@ xprop is included in the X11 series on Slackware 14.2, 15.0, and
 -current. No additional packages are required on a typical X11 system.
 
 On headless systems or installs without X11, window manager detection
-will be unavailable unless SFETCH_WM is set manually.
+will be unavailable unless SLACKFETCH_WM is set manually.
 
 
 INSTALLATION
 
-sfetch is a single shell script.
+slackfetch is a single shell script.
 
 To install locally:
 
-install -m 0755 sfetch ~/.local/bin/sfetch
+install -m 0755 slackfetch ~/.local/bin/slackfetch
 
 Or system-wide:
 
-install -m 0755 sfetch /usr/bin/sfetch
+install -m 0755 slackfetch /usr/bin/slackfetch
 
 
 USAGE
 
 Run directly:
 
-sfetch
+slackfetch
 
 Optional window manager override:
 
-export SFETCH_WM="mwm"
-sfetch
+export SLACKFETCH_WM="mwm"
+slackfetch
 
 
 ORIGIN AND CREDITS
 
-sfetch is derived from ufetch by J. Schillinger.
+slackfetch is derived from ufetch by J. Schillinger.
 
 The original project:
 

@@ -22,7 +22,7 @@
 #
 # root-daynight.sh
 #
-# Simple day/night root background switcher for X11.
+# Simple time-based root background policy for X11.
 #
 # Design principles:
 # - Always set a solid root color (primary, fast, no dependencies)
