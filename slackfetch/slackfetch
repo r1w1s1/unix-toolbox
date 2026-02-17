@@ -25,6 +25,10 @@
 # Based on ufetch by J. Schillinger.
 # Window manager detection uses EWMH via xprop only (no guessing).
 # Non-EWMH window managers may set SLACKFETCH_WM manually.
+#
+# Usage:
+#   slackfetch
+#   NO_COLOR=1 slackfetch   # disable color output (https://no-color.org)
 
 ## BASIC INFO
 
@@ -65,8 +69,7 @@ elif [ -n "$DISPLAY" ] && command -v xprop >/dev/null 2>&1; then
 fi
 
 ## COLORS
-
-if command -v tput >/dev/null 2>&1; then
+if [ -z "$NO_COLOR" ] && command -v tput >/dev/null 2>&1; then
     bold="$(tput bold)"
     blue="$(tput setaf 4)"
     reset="$(tput sgr0)"
