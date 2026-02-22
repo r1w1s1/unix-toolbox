@@ -26,7 +26,7 @@
 #
 # Design principles:
 # - Always set a solid root color (primary, fast, no dependencies)
-# - Optional wallpaper overlay (secondary, via feh)
+# - Optional wallpaper overlay (secondary, via hsetroot)
 # - Long-running loop with stable process count
 # - Safe to call from xinitrc (will not duplicate)
 #
@@ -51,10 +51,8 @@ SLEEP_TIME=300  # seconds between checks
 # Internal state / locking
 # ---------------------------------------------------------------------
 
-# /run/user/<UID>/root-daynight.pid
 PIDFILE="${XDG_RUNTIME_DIR:-/tmp}/root-daynight.pid"
 
-# Prevent multiple instances
 if [ -f "$PIDFILE" ]; then
     OLD_PID=$(cat "$PIDFILE" 2>/dev/null)
     if [ -n "$OLD_PID" ] && kill -0 "$OLD_PID" 2>/dev/null; then
@@ -80,10 +78,9 @@ command -v xsetroot >/dev/null 2>&1 || {
     exit 1
 }
 
-# feh is only required if wallpapers are enabled
 if [ -n "$DAY_WALLPAPER" ] || [ -n "$NIGHT_WALLPAPER" ]; then
-    command -v feh >/dev/null 2>&1 || {
-        echo "root-daynight: feh not found (required for wallpaper support)" >&2
+    command -v hsetroot >/dev/null 2>&1 || {
+        echo "root-daynight: hsetroot not found (required for wallpaper support)" >&2
         exit 1
     }
 fi
@@ -109,10 +106,8 @@ fi
 STATE=""
 
 while :; do
-    # Strip leading zero to avoid octal interpretation issues
-    HOUR=$(date +%H | sed 's/^0//')
-    
-    # Handle empty string (midnight edge case)
+    HOUR=$(date +%H)
+    HOUR=${HOUR#0}
     [ -z "$HOUR" ] && HOUR=0
 
     if [ "$HOUR" -ge "$NIGHT_START" ] || [ "$HOUR" -lt "$DAY_START" ]; then
@@ -126,12 +121,10 @@ while :; do
     fi
 
     if [ "$NEW_STATE" != "$STATE" ]; then
-        # Always set base root color
         xsetroot -solid "$COLOR"
 
-        # Optional wallpaper overlay
         if [ -n "$WALLPAPER" ]; then
-            feh --no-fehbg --bg-scale "$WALLPAPER"
+            hsetroot -fill "$WALLPAPER"
         fi
 
         STATE="$NEW_STATE"
