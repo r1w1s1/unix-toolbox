@@ -34,13 +34,16 @@
 
 host="$(hostname)"
 os="$(cat /etc/slackware-version 2>/dev/null)"
-kernel="$(uname -sr)"
+kernel="$(uname -sr) ($(uname -m))"
 uptime="$(uptime -p 2>/dev/null | sed 's/^up //')"
 
 ## SHELL (pretty name)
 
 shell="$(basename "$SHELL")"
-[ "$shell" = "bash" ] && shell="GNU bash"
+case "$shell" in
+    bash) shell="GNU bash" ;;
+    zsh)  shell="zsh"      ;;
+esac
 
 ## EDITOR
 
