@@ -71,6 +71,21 @@ elif [ -n "$DISPLAY" ] && command -v xprop >/dev/null 2>&1; then
     fi
 fi
 
+## OS AGE (days since root filesystem creation)
+
+os_age=""
+birth="$(stat -c %W / 2>/dev/null)"
+if [ -n "$birth" ] && [ "$birth" -gt 0 ] 2>/dev/null; then
+    os_age="$(( ($(date +%s) - birth) / 86400 ))d"
+else
+    oldest="$(ls -tr /var/log/packages/ 2>/dev/null | head -1)"
+    if [ -n "$oldest" ]; then
+        ts="$(stat -c %Y "/var/log/packages/$oldest" 2>/dev/null)"
+        [ -n "$ts" ] && os_age="$(( ($(date +%s) - ts) / 86400 ))d"
+    fi
+fi
+
+
 ## COLORS
 if [ -z "$NO_COLOR" ] && command -v tput >/dev/null 2>&1; then
     bold="$(tput bold)"
@@ -90,9 +105,10 @@ ${c0}     ________    ${nc}${USER}${ic}@${nc}${host}${reset}
 ${c0}    /  ______|   ${lc}os:        ${ic}${os}${reset}
 ${c0}    | |______    ${lc}kernel:    ${ic}${kernel}${reset}
 ${c0}    \\______  \\   ${lc}uptime:    ${ic}${uptime}${reset}
-${c0}     ______| |   ${lc}shell:     ${ic}${shell}${reset}
-${c0}  | |________/   ${lc}editor:    ${ic}${editor}${reset}
-${c0}  |____________  ${lc}wm:        ${ic}${wm}${reset}
+${c0}     ______| |   ${lc}age:       ${ic}${os_age}${reset}
+${c0}  | |________/   ${lc}shell:     ${ic}${shell}${reset}
+${c0}  |____________  ${lc}editor:    ${ic}${editor}${reset}
+${c0}                 ${lc}wm:        ${ic}${wm}${reset}
 
 EOF
 

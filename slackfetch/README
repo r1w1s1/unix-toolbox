@@ -30,6 +30,7 @@ slackfetch shows:
 - operating system (from /etc/slackware-version)
 - kernel version
 - system uptime
+- OS age (days since installation)
 - shell (pretty-printed when possible)
 - editor (from EDITOR environment variable)
 - window manager (X11)
@@ -47,6 +48,22 @@ In particular:
 
 If information cannot be determined reliably, it is left empty unless
 explicitly provided by the user.
+
+
+OS AGE DETECTION
+
+OS age shows the number of days since the system was installed.
+
+The primary method uses the birth time of the root filesystem, obtained
+via stat(1). This requires kernel and filesystem support for inode
+creation timestamps (supported on ext4 with Linux 4.11+).
+
+If the birth time is unavailable (unsupported filesystem or older kernel),
+slackfetch falls back to the modification time of the oldest package in
+/var/log/packages/, which on Slackware is typically aaa_base and corresponds
+closely to the original installation date.
+
+If neither method succeeds, the field is left empty.
 
 
 WINDOW MANAGER DETECTION
@@ -106,27 +123,29 @@ Running slackfetch on a Slackware system with an EWMH-compliant window manager:
 $ slackfetch
 
      ________    r1w1s1@RachaelTyrell.dev.local
-    /  ______|   OS:        Slackware 15.0+
-    | |______    KERNEL:    Linux 6.18.1
-    \______  \   UPTIME:    2 days, 7 hours, 25 minutes
-     ______| |   SHELL:     GNU bash
-  | |________/   EDITOR:    nvi
-  |____________  WM:        pekwm
+    /  ______|   os:        Slackware 15.0+
+    | |______    kernel:    Linux 6.18.1 (x86_64)
+    \______  \   uptime:    2 days, 7 hours, 25 minutes
+     ______| |   age:       293d
+  | |________/   shell:     GNU bash
+  |____________  editor:    nvi
+                 wm:        pekwm
 
 
 Running slackfetch on a system using a non-EWMH window manager
 (with manual override):
 
-export SLACKFETCH_WM="mwm"
-slackfetch
+$ export SLACKFETCH_WM="mwm"
+$ slackfetch
 
      ________    r1w1s1@RachaelTyrell.dev.local
-    /  ______|   OS:        Slackware 15.0+
-    | |______    KERNEL:    Linux 6.18.1
-    \______  \   UPTIME:    2 days, 7 hours, 25 minutes
-     ______| |   SHELL:     GNU bash
-  | |________/   EDITOR:    nvi
-  |____________  WM:        mwm
+    /  ______|   os:        Slackware 15.0+
+    | |______    kernel:    Linux 6.18.1 (x86_64)
+    \______  \   uptime:    2 days, 7 hours, 25 minutes
+     ______| |   age:       293d
+  | |________/   shell:     GNU bash
+  |____________  editor:    nvi
+                 wm:        mwm
 
 
 Running slackfetch on a headless or server system (no X11):
@@ -134,12 +153,27 @@ Running slackfetch on a headless or server system (no X11):
 $ slackfetch
 
      ________    user@jumpbox
-    /  ______|   OS:        Slackware 15.0+
-    | |______    KERNEL:    Linux 6.18.1
-    \______  \   UPTIME:    12 days, 3 hours
-     ______| |   SHELL:     GNU bash
-  | |________/   EDITOR:    vi
-  |____________  WM:
+    /  ______|   os:        Slackware 15.0
+    | |______    kernel:    Linux 5.15.19 (x86_64)
+    \______  \   uptime:    12 days, 3 hours
+     ______| |   age:       57d
+  | |________/   shell:     GNU bash
+  |____________  editor:    vi
+                 wm:
+
+
+Running slackfetch with color output disabled:
+
+$ NO_COLOR=1 slackfetch
+
+     ________    user@darkstar
+    /  ______|   os:        Slackware 15.0+
+    | |______    kernel:    Linux 6.18.1 (x86_64)
+    \______  \   uptime:    1 day, 4 hours, 12 minutes
+     ______| |   age:       180d
+  | |________/   shell:     GNU bash
+  |____________  editor:    nvi
+                 wm:        dwm
 
 
 DEPENDENCIES
@@ -186,16 +220,24 @@ export SLACKFETCH_WM="mwm"
 slackfetch
 
 
+COLOR CONTROL
+
+slackfetch respects the NO_COLOR environment variable.
+
+When set, all color and bold formatting is suppressed:
+
+NO_COLOR=1 slackfetch
+
+This follows the convention described at:
+
+https://no-color.org/
+
+
 ORIGIN AND CREDITS
 
 slackfetch is derived from ufetch by J. Schillinger.
 
-The original project:
-
 https://gitlab.com/jschx/ufetch
-
-The overall structure and philosophy are preserved, with Slackware-
-focused adjustments and stricter detection rules.
 
 
 LICENSE
