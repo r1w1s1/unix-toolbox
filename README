@@ -19,9 +19,6 @@ The repository currently includes:
 - scratch
   Disposable nvi-based scratchpad for temporary text staging.
 
-- slackfetch
-  Small system information script focused on Slackware Linux.
-
 - t
   Minimal editor-centric todo.txt manager using plain text files.
 
