@@ -4,7 +4,6 @@ unix-toolbox is a small collection of self-contained Unix helper tools
 and scripts used in tmux, minimal window managers, and traditional
 Slackware- and BSD-style workflows.
 
-
 TOOLS
 
 The repository currently includes:
@@ -25,14 +24,16 @@ The repository currently includes:
 - tmux-status
   Minimal system status script for use in the tmux status bar.
 
+- prompt
+  Minimal Unix shell prompt generator. Prints the current directory
+  with ~ substitution, git branch if inside a repository, and a
+  $ or # symbol with optional ! on command failure.
 
 OVERVIEW
 
 Each tool lives in its own directory and is documented locally.
-
 The tools are intentionally small and independent, with no shared
 framework, build system, or runtime dependency.
-
 
 DESIGN
 
@@ -44,22 +45,18 @@ unix-toolbox follows a conservative Unix-style design:
 - no mandatory configuration files
 - suitable for minimal and traditional systems
 
-
 INSTALLATION
 
 There is no global installation procedure.
-
 Individual tools can be installed by copying them into a directory
 listed in PATH, for example:
 
   install -m 0755 toolname ~/.local/bin/toolname
 
-Refer to each tool’s README for usage details.
-
+Refer to each tool's README for usage details.
 
 LICENSE
 
 All tools in this repository are distributed under the same license,
-unless stated otherwise in the tool’s directory.
-
+unless stated otherwise in the tool's directory.
 See the LICENSE file at the repository root for details.

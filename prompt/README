@@ -1,0 +1,59 @@
+prompt - minimal Unix shell prompt generator
+
+prompt prints a two-line shell prompt: the current directory on the
+first line, followed by a $ or # symbol on the second.
+
+The directory is printed with ~ substitution when inside HOME.
+If inside a git repository, the current branch is shown in brackets
+after the path.
+If the last command failed, a ! is appended to the prompt symbol.
+
+prompt is intended as a lightweight replacement for complex PS1
+strings embedded in shell configuration files.
+
+Design characteristics:
+- uses $PWD instead of forking pwd
+- git is the only external process
+- no forks outside of git repositories
+- no configuration files or environment variables beyond PROMPT_STATUS
+- tested on Linux (Slackware), FreeBSD, and OpenBSD
+
+Intended usage:
+
+Add the following to your .bashrc:
+
+  prompt_command() {
+      export PROMPT_STATUS=$?
+  }
+  PROMPT_COMMAND=prompt_command
+  PS1='$(prompt.sh)'
+
+The prompt will look like:
+
+  ~/unix-toolbox [main]
+  $
+
+Or on failure:
+
+  ~/unix-toolbox [main]
+  $!
+
+Known limitation:
+
+prompt has no timeout on git. If git blocks (for example on a slow
+or unresponsive NFS mount), the prompt will hang until git returns.
+This is a known trade-off in favor of simplicity.
+
+Requirements:
+- POSIX sh (dash, bash, ksh)
+- git(1) in PATH for branch display
+
+Installation:
+
+Copy the script somewhere in your PATH, for example:
+
+  cp prompt.sh /usr/local/bin/prompt.sh
+  chmod +x /usr/local/bin/prompt.sh
+
+License:
+Public domain.
