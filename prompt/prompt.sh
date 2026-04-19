@@ -4,8 +4,6 @@
 #
 # Tested on:
 #  - Linux (Slackware)
-#  - FreeBSD
-#  - OpenBSD
 #
 # Features:
 #  - prints current directory (with ~ replacement)
