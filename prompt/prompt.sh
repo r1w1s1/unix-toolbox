@@ -3,7 +3,7 @@
 # prompt.sh — minimal Unix prompt
 #
 # Tested on:
-#  - Linux (Slackware)
+#  - Linux (any distro with bash or zsh)
 #
 # Features:
 #  - prints current directory (with ~ replacement)
@@ -18,7 +18,7 @@
 #   }
 #
 #   PROMPT_COMMAND=prompt_command
-#   PS1='$(~/.bin/prompt.sh)'
+#   PS1='$(~/bin/prompt.sh)'
 #
 # Requirements:
 #  - POSIX sh (dash, bash, ksh)
@@ -30,16 +30,15 @@
 #
 # Performance:
 #  - uses $PWD instead of pwd         (avoid 1 fork)
-#  - uses id -u for portability       (bash users may use $EUID instead)
+#  - caches uid in $PROMPT_UID        (avoid 1 fork per prompt)
 #  - git is the only external process (~1 fork total; 0 outside git repos)
 #
-# Version 0.4:
-#  - use $PWD instead of pwd subshell
-#  - safe cwd fallback: ${PWD:-$(pwd)}
-#  - inline git branch check (avoid extra subshell)
-#  - use id -u portably (POSIX sh safe)
+# Version 0.5:
+#  - cache uid in $PROMPT_UID to avoid forking id(1) every prompt
+#  - quote $HOME in parameter expansion (safe if HOME has glob chars)
+#  - drop redundant 2>/dev/null on status test
 
-VERSION="0.4"
+VERSION="0.5"
 
 # --- option handling ---
 case "$1" in
@@ -50,13 +49,11 @@ prompt.sh - minimal shell prompt generator
 Prints a shell prompt and exits.
 
 Intended usage (bash):
-
     prompt_command() {
         export PROMPT_STATUS=$?
     }
-
     PROMPT_COMMAND=prompt_command
-    PS1='$(~/.bin/prompt.sh)'
+    PS1='$(~/bin/prompt.sh)'
 
 prompt.sh has no command-line options.
 EOF
@@ -93,11 +90,10 @@ if [ -z "$cwd" ]; then
 	printf 'prompt: cwd unavailable\n$ ' >&2
 	exit 1
 fi
-
 # --- first line: path [+ git branch] ---
 case "$cwd" in
 	"$HOME"|"$HOME"/*)
-		printf '~%s' "${cwd#$HOME}"
+		printf '~%s' "${cwd#"$HOME"}"
 		;;
 	*)
 		printf '%s' "$cwd"
@@ -108,18 +104,22 @@ esac
 if branch=$(git symbolic-ref --short HEAD 2>/dev/null) && [ -n "$branch" ]; then
 	printf ' [%s]\n' "$branch"
 else
-	printf '\n'
+	echo
 fi
 
-# --- prompt symbol (id -u is POSIX; bash users may replace with $EUID) ---
-if [ "$(id -u)" -eq 0 ]; then
+# --- prompt symbol (uid is cached; doesn't change mid-session) ---
+if [ -z "$PROMPT_UID" ]; then
+	PROMPT_UID=$(id -u)
+	export PROMPT_UID
+fi
+if [ "$PROMPT_UID" -eq 0 ]; then
 	symbol='#'
 else
 	symbol='$'
 fi
 
 # --- last command failed ---
-if [ "$status" -ne 0 ] 2>/dev/null; then
+if [ "$status" -ne 0 ]; then
 	printf '%s! ' "$symbol"
 else
 	printf '%s ' "$symbol"
