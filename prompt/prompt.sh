@@ -17,7 +17,8 @@
 #       export PROMPT_STATUS=$?
 #   }
 #
-#   PROMPT_COMMAND=prompt_command
+#   # Safe append — preserves hooks from z, starship, direnv, etc.
+#   PROMPT_COMMAND="prompt_command${PROMPT_COMMAND:+;$PROMPT_COMMAND}"
 #   PS1='$(~/bin/prompt.sh)'
 #
 # Requirements:
@@ -46,16 +47,40 @@ case "$1" in
 		cat <<'EOF'
 prompt.sh - minimal shell prompt generator
 
-Prints a shell prompt and exits.
+Prints one prompt line to stdout and exits. Call it from PS1.
 
-Intended usage (bash):
-    prompt_command() {
-        export PROMPT_STATUS=$?
-    }
-    PROMPT_COMMAND=prompt_command
-    PS1='$(~/bin/prompt.sh)'
+SETUP (bash)
 
-prompt.sh has no command-line options.
+  Add to ~/.bashrc:
+
+      prompt_command() {
+          export PROMPT_STATUS=$?
+      }
+      # Safe append — preserves hooks from z, starship, direnv, etc.
+      PROMPT_COMMAND="prompt_command${PROMPT_COMMAND:+;$PROMPT_COMMAND}"
+      PS1='$(prompt.sh) '
+
+  Note: use the ${PROMPT_COMMAND:+;$PROMPT_COMMAND} form, not a bare
+  PROMPT_COMMAND=prompt_command assignment. The bare form overwrites
+  hooks installed by other tools (directory jumpers, prompt helpers,
+  shell integrations) and silently breaks them.
+
+SETUP (zsh)
+
+  Add to ~/.zshrc:
+
+      setopt PROMPT_SUBST
+      precmd() { export PROMPT_STATUS=$? }
+      PS1='$(prompt.sh) '
+
+OPTIONS
+
+  -h    show this help
+  -v    show version
+
+REQUIREMENTS
+
+  POSIX sh, git(1) in PATH for branch display.
 EOF
 		exit 0
 		;;
