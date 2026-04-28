@@ -27,57 +27,47 @@
 # Design principles:
 # - Always set a solid root color (primary, fast, no dependencies)
 # - Optional wallpaper overlay (secondary, via hsetroot)
-# - Long-running loop with stable process count
+# - Sleeps exactly until the next transition instead of polling,
+#   waking only twice a day (at DAY_START and NIGHT_START)
+# - Corrects itself on startup if the machine was off at transition time
 # - Safe to call from xinitrc (will not duplicate)
 #
 
 # ---------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------
-
 DAY_COLOR="#c6ccd6"
 NIGHT_COLOR="#24272d"
-
 # Leave empty ("") to disable wallpapers
 DAY_WALLPAPER=""
 NIGHT_WALLPAPER=""
-
 DAY_START=9     # 09:00
 NIGHT_START=19  # 19:00
-
-SLEEP_TIME=300  # seconds between checks
 
 # ---------------------------------------------------------------------
 # Internal state / locking
 # ---------------------------------------------------------------------
-
 PIDFILE="${XDG_RUNTIME_DIR:-/tmp}/root-daynight.pid"
-
 if [ -f "$PIDFILE" ]; then
     OLD_PID=$(cat "$PIDFILE" 2>/dev/null)
     if [ -n "$OLD_PID" ] && kill -0 "$OLD_PID" 2>/dev/null; then
         exit 0
     fi
 fi
-
 echo $$ > "$PIDFILE"
-
 cleanup() {
     rm -f "$PIDFILE"
     exit 0
 }
-
 trap cleanup INT TERM EXIT
 
 # ---------------------------------------------------------------------
 # Dependencies
 # ---------------------------------------------------------------------
-
 command -v xsetroot >/dev/null 2>&1 || {
     echo "root-daynight: xsetroot not found" >&2
     exit 1
 }
-
 if [ -n "$DAY_WALLPAPER" ] || [ -n "$NIGHT_WALLPAPER" ]; then
     command -v hsetroot >/dev/null 2>&1 || {
         echo "root-daynight: hsetroot not found (required for wallpaper support)" >&2
@@ -88,47 +78,49 @@ fi
 # ---------------------------------------------------------------------
 # Validate wallpaper files
 # ---------------------------------------------------------------------
-
 if [ -n "$DAY_WALLPAPER" ] && [ ! -f "$DAY_WALLPAPER" ]; then
     echo "root-daynight: Warning: DAY_WALLPAPER not found: $DAY_WALLPAPER" >&2
     DAY_WALLPAPER=""
 fi
-
 if [ -n "$NIGHT_WALLPAPER" ] && [ ! -f "$NIGHT_WALLPAPER" ]; then
     echo "root-daynight: Warning: NIGHT_WALLPAPER not found: $NIGHT_WALLPAPER" >&2
     NIGHT_WALLPAPER=""
 fi
 
 # ---------------------------------------------------------------------
-# Main loop
+# Helper: seconds until HH:00:00 today, or tomorrow if already past
 # ---------------------------------------------------------------------
+seconds_until() {
+    TARGET_H=$1
+    NOW=$(date +%s)
+    TODAY=$(date +%Y-%m-%d)
+    TARGET=$(date -d "$TODAY $TARGET_H:00:00" +%s)
+    [ "$TARGET" -le "$NOW" ] && TARGET=$((TARGET + 86400))
+    echo $((TARGET - NOW))
+}
 
-STATE=""
-
+# ---------------------------------------------------------------------
+# Main loop — wakes only at each transition, not on a fixed poll interval
+# ---------------------------------------------------------------------
 while :; do
     HOUR=$(date +%H)
     HOUR=${HOUR#0}
     [ -z "$HOUR" ] && HOUR=0
 
     if [ "$HOUR" -ge "$NIGHT_START" ] || [ "$HOUR" -lt "$DAY_START" ]; then
-        NEW_STATE="night"
         COLOR="$NIGHT_COLOR"
         WALLPAPER="$NIGHT_WALLPAPER"
+        SLEEP=$(seconds_until "$DAY_START")
     else
-        NEW_STATE="day"
         COLOR="$DAY_COLOR"
         WALLPAPER="$DAY_WALLPAPER"
+        SLEEP=$(seconds_until "$NIGHT_START")
     fi
 
-    if [ "$NEW_STATE" != "$STATE" ]; then
-        xsetroot -solid "$COLOR"
-
-        if [ -n "$WALLPAPER" ]; then
-            hsetroot -fill "$WALLPAPER"
-        fi
-
-        STATE="$NEW_STATE"
+    xsetroot -solid "$COLOR"
+    if [ -n "$WALLPAPER" ]; then
+        hsetroot -fill "$WALLPAPER"
     fi
 
-    sleep "$SLEEP_TIME"
+    sleep "$SLEEP"
 done
