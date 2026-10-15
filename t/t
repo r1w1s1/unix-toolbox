@@ -25,7 +25,29 @@
 
 todo_dir="${TODOTXT_DIR:-$HOME/projects/personal/todo}"
 todo_file="$todo_dir/todo.txt"
-editor="${VISUAL:-${EDITOR:-nvi}}"
+editor="${VISUAL:-${EDITOR:-neatvi}}"
+
+# Print active tasks in the same order used by `list` and `done <number>`.
+# The source line number is kept as a tie-breaker, so tasks with the same
+# priority do not jump around between invocations.
+sorted_tasks() {
+    nl -ba "$todo_file" \
+    | awk '
+        {
+            line = $1
+            $1 = ""
+            sub(/^[[:space:]]+/, "")
+            text = $0
+            if (text == "")
+                next
+            prio = "Z"
+            if (match(text, /\([A-Z]\)/))
+                prio = substr(text, RSTART + 1, 1)
+            printf "%s\t%08d\t%s\n", prio, line, text
+        }
+    ' \
+    | sort -t "$(printf '\t')" -k1,1 -k2,2n
+}
 
 mkdir -p "$todo_dir" || exit 1
 touch "$todo_file" || exit 1
@@ -39,20 +61,18 @@ case "$cmd" in
 
     list|l)
         printf "\n"
-        nl -ba "$todo_file" \
-        | grep -v '^[[:space:]]*[0-9]\+[[:space:]]*$' \
-        | awk '
+        sorted_tasks \
+        | awk -F '\t' '
             {
-                prio = "Z"
-                if ($0 ~ /\([A-Z]\)/)
-                    prio = substr($0, index($0,"(")+1, 1)
-                printf "%s %s\n", prio, $0
+                if ($1 != previous) {
+                    if (NR > 1) print ""
+                    label = ($1 == "Z" ? "none" : $1)
+                    printf "[%s]\n", label
+                    previous = $1
+                }
+                printf "%2d %s\n", ++number, $3
             }
-        ' \
-        | sort -k1,1 \
-        | cut -d' ' -f2- \
-        | nl -w2 -s' ' \
-        | sed 's/^[[:space:]]*[0-9]\+[[:space:]]*//'
+        '
         printf "\n"
         ;;
 
@@ -78,20 +98,9 @@ case "$cmd" in
         # Numeric done (maps list number -> file line)
         if printf '%s' "$1" | grep -Eq '^[0-9]+$'; then
             line=$(
-                nl -ba "$todo_file" \
-                | grep -v '^[[:space:]]*[0-9]\+[[:space:]]*$' \
-                | awk '
-                    {
-                        prio = "Z"
-                        if ($0 ~ /\([A-Z]\)/)
-                            prio = substr($0, index($0,"(")+1, 1)
-                        printf "%s %s\n", prio, $0
-                    }
-                ' \
-                | sort -k1,1 \
-                | cut -d' ' -f2- \
+                sorted_tasks \
                 | sed -n "${1}p" \
-                | awk '{print $1}'
+                | cut -f2
             )
 
             [ -z "$line" ] && {
